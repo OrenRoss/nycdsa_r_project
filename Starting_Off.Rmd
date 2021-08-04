@@ -1,0 +1,20 @@
+---
+title: "Starting_Off"
+author: "Oren"
+date: "8/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+https://www.zillow.com/research/data/
+
+https://walker-data.com/tidycensus/
+
+https://github.com/hrecht/censusapi
+
+
+
