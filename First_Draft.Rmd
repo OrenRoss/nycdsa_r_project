@@ -1,0 +1,157 @@
+---
+title: "First_Draft"
+author: "Oren"
+date: "8/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading loads of libraries
+library(tidyverse) 
+library(tidycensus) 
+library(tmap)
+library(tmaptools) 
+library(sf)
+library(tigris)
+library(httr)
+library(jsonlite)
+library(censusapi)
+library(rgdal)
+library(sp) 
+library(leaflet) 
+library(maptools)
+library(rgdal)
+library(geojsonR)
+library(data.table)
+library(purrr)
+
+```
+
+
+```{r loading df}
+
+df2 <- fread("Data/School_Proficiency_Index.csv")
+head(df2)
+
+df3 <- fread("Data/Residential_Construction_Permits_by_County.csv")
+head(df3)
+
+df4 <- fread("Data/Jobs_Proximity_Index.csv")
+head(df4)
+
+df5 <- fread("Data/Labor_Market_Engagement_Index.csv")
+head(df5)
+
+df6 <- fread("Data/Environmental_Health_Hazard_Index.csv")
+head(df6)
+
+df7 <- fread("Data/Small_Area_Fair_Market_Rents.csv")
+head(df7)
+
+df8 <- fread("Data/Low_Poverty_Index.csv")
+head(df8)
+
+df9 <- fread("Data/Low_Transportation_Cost_Index.csv")
+head(df9)
+
+df10 <- fread("Data/Labor_Market_Engagement_Index.csv")
+head(df10)
+
+df11 <- fread("Data/Environmental_Health_Hazard_Index.csv")
+head(df11)
+
+
+# df12 <- fread("Data/Location_Affordability_Index_v.3.csv")
+# head(df12)
+# colnames(df12)
+# 
+# df13 <- fread("Data/Location_Affordability_Index_v_2.0.csv")
+# head(df13)
+# colnames(df13)
+```
+
+```{r downloading census}
+
+# total_pop = "B01003_001",
+# median_income = "B19013_001"
+
+Pop_ALL <- get_acs(
+  geography = "tract",
+  variables = "B01003_001",
+  state = us,
+  year = 2016,
+  survey = "acs5",
+  geometry = TRUE, key = census_api_key
+  )
+
+```
+
+```{r merging data}
+
+# Change GEOID to character
+df9_$GEOID <- as.character(df9_$GEOID)
+# Adding 0 to beginning of short ones
+df9_$GEOID <- df9_$GEOID %>% str_trunc(11) %>% str_pad(11, "left", pad = "0")
+
+
+df2_ <- df2 %>% # creating new df
+  group_by(TRACT, COUNTY, STUSAB) %>% # grouping by location
+  mutate(school_index = mean(schl_idx, na.rm=TRUE)) %>% # creating average of school index
+  select(STATE, COUNTY, TRACT, STUSAB, school_index) # Keeping what I need
+
+
+df4_ <- df4 %>% 
+  group_by(TRACT, COUNTY, STUSAB) %>% # grouping by location
+  mutate(jobs_index = mean(jobs_idx, na.rm=TRUE)) %>% # creating average of jobs index
+  select(STATE, COUNTY, TRACT, STUSAB, jobs_index) # Keeping what I need
+
+df9 <- df9 %>% group_by(TRACT, COUNTY, STUSAB) %>% mutate(avg = mean(pov_idx, na.rm=TRUE)) %>% arrange(GEOID)
+
+df9_ <- df9 %>% 
+  mutate(poverty_index = mean(pov_idx, na.rm=TRUE), labor_index = mean(lbr_idx, na.rm=TRUE), hazard_index = mean(haz_idx, na.rm=TRUE), transportation_cost_index = mean(tcost_idx, na.rm=TRUE) , transport_index = mean(trans_idx, na.rm=TRUE)) %>% # creating averages of a bunch of columns
+  select(STATE, COUNTY, TRACT, GEOID, STUSAB, poverty_index, labor_index, hazard_index, transportation_cost_index, transport_index) # Keeping what I need
+
+full_df <- df2_ %>% inner_join(df4_) %>% full_join(df9_)
+
+
+pop_test <- Pop_ALL %>% filter(st_is_empty(geometry) == FALSE)
+sum(geo_test %in% pop_test$GEOID)
+
+summary(df2$GEOID)
+
+# Change GEOID to character
+df9_$GEOID <- as.character(df9_$GEOID)
+# Adding 0 to beginning of short ones
+df9_$GEOID <- df9_$GEOID %>% str_trunc(11) %>% str_pad(11, "left", pad = "0")
+
+
+%>% full_join(df9_)
+
+
+
+sum(is.na.data.frame(full_df))
+sum(is.na(full_df$GEOID))
+sum(is.na(full_df$state_abr))
+sum(is.na(full_df$school_index))
+sum(is.na(full_df$jobs_index))
+sum(is.na(full_df$poverty_index))
+sum(is.na(full_df$labor_index))
+sum(is.na(full_df$hazard_index))
+sum(is.na(full_df$transportation_cost_index))
+sum(is.na(full_df$transport_index))
+```
+
+
+
+```{r}
+play <- df2
+play %>% group_by(TRACT, COUNTY, STUSAB) %>% mutate(avg = mean(schl_idx, na.rm=TRUE)) %>% arrange(GEOID)
+df9 %>% group_by(TRACT, COUNTY, STUSAB) %>% mutate(avg = mean(pov_idx, na.rm=TRUE)) %>% arrange(GEOID)
+
+colnames(play)
+colnames(df9)
+"STATE"        "COUNTY"       "TRACT"  
+```
+
