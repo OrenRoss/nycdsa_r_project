@@ -28,6 +28,7 @@ library(data.table)
 library(purrr)
 library(corrplot)
 library(corrr)
+
 ```
 
 
@@ -52,7 +53,7 @@ head(df_lots)
 # colnames(df13)
 ```
 
-```{r downloading census}
+```{r downloading census_repeat of next}
 
 # total_pop = "B01003_001",
 # median_income = "B19013_001"
@@ -70,7 +71,7 @@ Pop_ALL <- get_acs(
 
 ```{r downloading geographical}
 # For the codes - https://censusreporter.org/topics/table-codes/
-
+us <- unique(fips_codes$state)[1:51]
 Pop_ALL <- get_acs(
   geography = "tract",
   variables = "B01003_001",
@@ -80,14 +81,14 @@ Pop_ALL <- get_acs(
   geometry = TRUE, key = census_api_key
   )
 
-# Inc_ALL <- get_acs(
-#   geography = "tract",
-#   variables = "B19013_001",
-#   state = us,
-#   # year = 2016,
-#   survey = "acs5",
-#   geometry = TRUE, key = census_api_key
-#   )
+Inc_ALL <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = us,
+  # year = 2016,
+  survey = "acs5",
+  geometry = TRUE, key = census_api_key
+  )
 
 ```
 
@@ -109,6 +110,7 @@ df_jobs <- df_jobs %>%
 
 
 df_lots <- df_lots %>% 
+  group_by(TRACT, COUNTY, STUSAB) %>% # grouping by location
   mutate(poverty_index = mean(pov_idx, na.rm=TRUE), labor_index = mean(lbr_idx, na.rm=TRUE), hazard_index = mean(haz_idx, na.rm=TRUE), transportation_cost_index = mean(tcost_idx, na.rm=TRUE) , transport_index = mean(trans_idx, na.rm=TRUE)) %>% # creating averages of a bunch of columns
   select(STATE, COUNTY, TRACT, GEOID, STUSAB, poverty_index, labor_index, hazard_index, transportation_cost_index, transport_index) # Keeping what I need
 
@@ -124,14 +126,35 @@ full_df <- df_lots %>% inner_join(df_pov) %>% inner_join(df_jobs)
 
 
 ```{r}
-sum(full_df$GEOID %in% Pop_ALL$GEOID)
+# sum(full_df$GEOID %in% Pop_ALL$GEOID)
+colnames(Inc_ALL)[c(4,5)] <- c("income_estimate", "income_moe")
+Inc_ALL <- as.data.frame(Inc_ALL)[ c(1, 2, 4, 5)]
+colnames(Pop_ALL)[c(4,5)] <- c("population_estimate", "population_moe")
 
-df_final <- inner_join(full_df, Pop_ALL)
+df_final <- inner_join(Inc_ALL, full_df)
+df_final <- inner_join(Pop_ALL, df_final)
 
 df_final <- df_final %>% filter(st_is_empty(geometry) == FALSE)
 
-correlate(df_final[6:12])
-boxplot(df_final[6:12])
+df_stats <- as.data.frame(df_final)[-c(6)]
+
+colnames(df_final)
+```
+
+
+```{r some statistical analysis}
+
+correlate(df_stats[c(4, 6, 12:18)])
+boxplot(df_stats[12:18])
+boxplot(df_stats[6])
+boxplot(df_stats[4])
+
+ggplot(df_final, aes(population_estimate)) + geom_density()
+ggplot(df_final) + geom_qq(aes(sample=population_estimate))
+
+ggplot(df_final, aes(income_estimate)) + geom_density()
+ggplot(df_final) + geom_qq(aes(sample=income_estimate))
+
 
 ggplot(df_final, aes(poverty_index)) + geom_density()
 ggplot(df_final) + geom_qq(aes(sample=poverty_index))
@@ -139,18 +162,28 @@ ggplot(df_final) + geom_qq(aes(sample=poverty_index))
 
 ggplot(df_final,aes(poverty_index, school_index)) + geom_point(size = .00001, alpha = .1) + geom_smooth(method = lm)
 
-lm(school_index ~ poverty_index + transportation_cost_index + transport_index + jobs_index, data = df_final)
 
+summary(lm(school_index ~ population_estimate + income_estimate + poverty_index + transportation_cost_index + transport_index + jobs_index, data = df_final))
+
+summary(lm(school_index ~ population_estimate + income_estimate + poverty_index + transportation_cost_index + transport_index + jobs_index, data = (df_final %>% filter(str_detect(STUSAB, State)))))
+
+
+ggplot(df_final, aes(income_estimate, color = STUSAB)) + geom_density()
 ```
 
 
 
 ```{r}
-State = "California"
-df_final %>% filter(grepl(State, NAME))
+State = "CA"
+Measurement = "school_index"
+
 # Define the shape and the layer elements
 # tmap_mode("view")
-tm_shape(df_final %>% filter(st_is_empty(geometry) == FALSE) %>% filter(grepl(State, NAME))) +
-  tm_polygons("estimate")  + tm_borders(alpha = 0.00, lwd = 0)
+tm_shape(df_final %>% filter(str_detect(STUSAB, State))) +
+  tm_polygons(Measurement, border.alpha = 0)
+
+
+
+# + tm_borders(alpha = 0, lwd = 0)
 ```
 
