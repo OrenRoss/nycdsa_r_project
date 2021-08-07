@@ -175,14 +175,14 @@ ggplot(df_final, aes(income_estimate, color = STUSAB)) + geom_density()
 
 ```{r}
 State = "CA"
-Measurement = "school_index"
+Measurement = "income_estimate"
 
 # Define the shape and the layer elements
 # tmap_mode("view")
 tm_shape(df_final %>% filter(str_detect(STUSAB, State))) +
-  tm_polygons(Measurement, border.alpha = 0)
+  tm_polygons(Measurement, border.alpha = 0, id="NAME")
 
-
+# tm_polygons("income_grp", palette="-Blues", contrast=.7, id="name", title="Income group") 
 
 # + tm_borders(alpha = 0, lwd = 0)
 ```

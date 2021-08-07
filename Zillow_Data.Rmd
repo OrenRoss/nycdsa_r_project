@@ -1,0 +1,130 @@
+---
+title: "Tract to Zip"
+author: "Oren"
+date: "8/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(readxl)
+library(reshape)
+library(lubridate)
+
+library(patchwork) # To display 2 charts together
+library(hrbrthemes)
+
+
+df_tract_zip <- read_excel("Data/TRACT_ZIP_062021.xlsx")
+head(df_tract_zip)
+```
+
+```{r zillow data loading}
+#### Loading Rental CSV ####
+zil_rental <- fread("Data/Zip_ZORI_AllHomesPlusMultifamily_SSA.csv")
+head(zil_rental)
+
+# Renamin columns and adding rental to others
+zil_rental <- rename(zil_rental, c("RegionName" = "Zipcode", "MsaName" = "City_Name"))
+# This adds _rental to end of date, but not sure I want to keep it that way
+# rename_with(~paste0(., "_rental"), -c(1, 2, 4)) %>% 
+
+# Adding leading zero to zipcodes
+zil_rental$Zipcode <- zil_rental$Zipcode %>% str_pad(5, "left", pad = "0")
+
+
+
+
+#### Loading housing value csv ####
+zil_home <- fread("Data/Zip_zhvi_uc_sfrcondo_tier_0.33_0.67_sm_sa_month.csv")
+head(zil_home)
+
+# Removing columns
+zil_home <- zil_home[,-c(4, 5, 10:225)]
+
+# Removing days from the months columns - using append for first one since I was having difficulty just renaming those columns
+colnames(zil_home) <- append(colnames(zil_home[,c(1:7)]), str_sub(colnames(zil_home[,c(8:97)]), start = 1, end = 7))
+zil_home <- rename(zil_home,  c("RegionName" = "Zipcode", "MsaName" = "City_Name"))
+# This adds _home to end of date, but not sure I want to keep it that way
+# %>% rename_with(~paste0(., "_home"), -c(1:9))
+
+# Adding leading zero to zipcodes
+zil_home$Zipcode <- zil_home$Zipcode %>% str_pad(5, "left", pad = "0")
+
+
+```
+
+
+```{r}
+rent <- copy(zil_rental)
+rent <- melt(rent, id.vars = 1:4)
+rent$variable <- ym(rent$variable)
+rent <- rename(rent, c(value = "value_rental", variable = "Date"))
+p <- ggplot(rent %>% filter(SizeRank == 2), aes(x=Date, y=value_rental)) +
+  geom_line() + 
+  xlab("")
+p
+
+
+home <- copy(zil_home)
+home <- melt(home, id.vars = 1:7)
+home$variable <- ym(home$variable)
+home <- rename(home, c(value = "value_home", variable = "Date"))
+
+
+test <- merge(rent, home, by = c("Zipcode","Date", "RegionID"))
+
+
+p1 <- ggplot(test %>% filter(City == "Summerville"), aes(x=Date, y=value_rental)) +
+  geom_line(aes(color=Zipcode), size=2) +
+  ggtitle("Rental") +
+  theme_ipsum()
+  
+p2 <- ggplot(test %>% filter(City == "Summerville"), aes(x=Date, y=value_home)) +
+  geom_line(aes(color=Zipcode),size=2) +
+  ggtitle("Home") +
+  theme_ipsum()
+
+# Display both charts side by side thanks to the patchwork package
+p1 + p2
+
+```
+
+```{r}
+city_test = "Summerville"
+#Zipcode == 10016
+
+
+coef <- as.vector(test %>% 
+                    filter(Zipcode == 10016) %>% 
+                    summarise(mean(value_home, na.rm = T)))/
+  (test %>% 
+     filter(Zipcode == 10016) %>% 
+     summarise(mean(value_rental, na.rm = T)))
+coef <- coef[[1,1]]
+
+ggplot(test %>% filter(Zipcode == 10016), aes(x=Date, y=value_home)) +
+  
+  geom_line( aes(y=value_home), size=2, color= "red") + 
+  geom_line( aes(y=value_rental*coef), size=2, color="blue") + # Divide by 10 to get the same range than the temperature
+
+  
+#  Custom the Y scales:
+  scale_y_continuous(
+
+    # Features of the first axis
+    name = "Home Value",
+
+    # Add a second axis and specify its features
+    sec.axis = sec_axis(trans=~./coef, name="Rental")
+  ) +
+
+  theme_ipsum()
+```
+
+
+
