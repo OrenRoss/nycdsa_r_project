@@ -8,13 +8,13 @@ library(hrbrthemes)
 library(tidycensus) 
 
 zillow <- fread("zillow_all.csv")
-
+x<- sort(unique(zillow$State_Name))
 
 ui <- fluidPage(sidebarLayout(
     sidebarPanel(
-        selectInput("state_shiny", "choose a state", zillow$State_Name, selected = "NY"),
-        selectInput("city_shiny", "select city", "placeholder1", selected = "New York"),
-        selectInput("zip_shiny", "select zipcode", "placeholder2", selected = "10001")
+        selectInput("state_shiny", "choose a state", x, selected = "Alabama"),
+        selectInput("city_shiny", "select city", "placeholder1", selected = "Birmingham"),
+        selectInput("zip_shiny", "select zipcode", "placeholder2", selected = "35205")
     ),
     mainPanel(
         plotlyOutput("plot2"))
@@ -23,51 +23,45 @@ ui <- fluidPage(sidebarLayout(
 
 
 server <- function(input, output, session){
-    # dataset <- reactive({
-    #     get(input$state)
-    # })
-    
+
     observe({
         updateSelectInput(session, "city_shiny",
                           choices = (zillow %>% 
-                                         filter(State == input$state_shiny) %>% 
-                                         distinct(City))[[1]])
-        
+                                         filter(State_Name == input$state_shiny) %>% 
+                                         distinct(City) %>% arrange(City))[[1]])
     })
     
     observeEvent(input$city_shiny, {
         city_levels <- (zillow %>% 
-                            filter(State == input$state_shiny) %>% 
+                            filter(State_Name == input$state_shiny) %>% 
                             distinct(City))[[1]]
-        
-    
         updateSelectInput(session, "zip_shiny", choices = (zillow %>% 
-                                                               filter(State == input$state_shiny) %>% 
+                                                               filter(State_Name == input$state_shiny) %>% 
                                                                filter(City == input$city_shiny) %>% 
-                                                               distinct(Zipcode))[[1]])
+                                                               distinct(Zipcode) %>% arrange(Zipcode))[[1]])
     })
     
-    
     output$plot2 <- renderPlotly({
-        
-        
         old.y <- list(
             side = "left",
             title = "Home"
         )
-        
         new.y <- list(
             overlaying = "y",
             side = "right",
             title = "Rental"
         )
-        
         plot_ly(zillow %>% 
-                    filter(State == input$state_shiny) %>% 
+                    filter(State_Name == input$state_shiny) %>% 
                     filter(City == input$city_shiny) %>% 
                     filter(Zipcode == input$zip_shiny)) %>%
             add_lines(x = ~Date, y = ~value_home, yaxis="y1", name = "Home") %>%
             add_lines(x = ~Date, y = ~value_rental, yaxis = "y2", name = "Rental") %>%
+            
+            # add_lines(x = ~Date, y = ~(zillow %>% 
+            #                                filter(State_Name == input$state_shiny) %>% 
+            #                                filter(City == input$city_shiny) %>% 
+            #                                summarise(mean(value_home, na.rm = T))) , yaxis="y1", name = "Avg Home") %>%
             layout(yaxis2 = new.y, yaxis = old.y, xaxis = list(title="Property Value"))
         
     })

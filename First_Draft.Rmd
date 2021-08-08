@@ -29,6 +29,7 @@ library(purrr)
 library(corrplot)
 library(corrr)
 library(RSQLite)
+library(openintro)
 ```
 
 
@@ -50,28 +51,32 @@ head(df_lots)
 # total_pop = "B01003_001",
 # median_income = "B19013_001"
 
-Pop_ALL <- get_acs(
-  geography = "tract",
-  variables = "B01003_001",
-  state = us,
-  year = 2016,
-  survey = "acs5",
-  geometry = TRUE, key = census_api_key
-  )
+# Pop_ALL <- get_acs(
+#   geography = "tract",
+#   variables = "B01003_001",
+#   state = state.abb,
+#   year = 2016,
+#   survey = "acs5",
+#   geometry = TRUE, key = census_api_key
+#   )
 
 ```
 
 ```{r}
 # TIGER_DP
 
-Pop_ALL_ZIP_15 <- get_acs(
-  geography = "zcta",
-  variables = "B01003_001",
-  state = us,
-  # year = 2015,
-  survey = "acs5",
-  geometry = TRUE, key = census_api_key
-  )
+# Pop_ALL_ZIP_15 <- get_acs(
+#   geography = "zcta",
+#   variables = "B01003_001",
+#   state = state.abb,
+#   # year = 2015,
+#   survey = "acs5",
+#   # geometry = TRUE, 
+#   key = census_api_key
+#   )
+# 
+# 
+# fwrite(Pop_ALL_ZIP_15, "pop_all_zip.csv")
 ```
 
 
@@ -81,11 +86,11 @@ Pop_ALL_ZIP_15 <- get_acs(
 
 #   geography = "zcta",
 
-us <- unique(fips_codes$state)[1:51]
+# us <- unique(fips_codes$state)[1:51]
 Pop_ALL <- get_acs(
   geography = "tract",
   variables = "B01003_001",
-  state = us,
+  state = state.abb,
   # year = 2016,
   survey = "acs5",
   geometry = TRUE, key = census_api_key
@@ -94,7 +99,7 @@ Pop_ALL <- get_acs(
 Inc_ALL <- get_acs(
   geography = "tract",
   variables = "B19013_001",
-  state = us,
+  state = state.abb,
   # year = 2016,
   survey = "acs5",
   geometry = TRUE, key = census_api_key
@@ -146,7 +151,14 @@ df_final <- df_final %>% filter(st_is_empty(geometry) == FALSE)
 df_stats <- as.data.frame(df_final)[-c(6)]
 
 colnames(df_final)
+
+# Changing name to County Names
+df_final$NAME <- sub(".*?, ", "", df_final$NAME)
+
+df_final <- df_final %>% mutate(State_Name = abbr2state(STUSAB))
+
 ```
+
 
 ```{r some statistical analysis}
 

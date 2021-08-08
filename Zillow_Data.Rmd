@@ -18,7 +18,7 @@ library(lubridate)
 library(patchwork) # To display 2 charts together
 library(hrbrthemes)
 
-
+library(zoo)
 df_tract_zip <- read_excel("Data/TRACT_ZIP_062021.xlsx")
 head(df_tract_zip)
 ```
@@ -156,11 +156,56 @@ ggplot(test %>% filter(Zipcode == 10016), aes(x=Date, y=value_home)) +
 ```
 
 ```{r}
-unique(zillow_all$City)
+library(openintro)
+
+zillow_all <- zillow_all %>% mutate(State_Name = abbr2state(State))
+fwrite(zillow_all, file = "zillow_all.csv")
 ```
 
-```{r}
-(test %>% filter(State == "MA") %>% distinct(City))[[1]]
+```{r trying to fill in NA}
+
+zillow_all <- fread("zillow_all.csv")
+zillow_all %>% group_by(Zipcode) %>% zoo::na.approx(zillow_all$value_home) 
+
+
+ind <- which(is.na(zillow_all$value_rental))
+zillow_all$value_rental[ind] <- sapply(ind, function(i) with(zillow_all, mean(c(value_rental[i-1], value_rental[i+1]))))
+df
+ind
+
+sum(is.na(zillow_all$value_rental))
+
+zillow_all$value_home[ind] <- with(zillow_all, ((value_home[ind-1] + value_home[ind+1])/2))
+
+
+zillow_all[order(-Date),
+      value_homeTEST := na.locf(value_home),
+      by = .(Zipcode)]
+
+
+zillow[, testing := na.approx(return, rule = 2), by = Zipcode] 
+
+```
+
+
+```{r adding quantile and mean}
+  #summarise(City_housing_avg = max(value_home))
+summarise("25qs" = quantile(value_home, c(0.25, na.rm = T)), prob = c(0.25))
+
+
+my_quantile <- function(x, probs) {
+  tibble(x = quantile(x, probs), probs = probs)
+}
+zillow_all %>%
+  group_by(City, Date) %>%
+  summarise(my_quantile(value_home, c(0.25, 0.75)))
+
+
+x <- unique(zillow_all$State_Name)
+class(x)
+y <- zillow %>%  distinct(State)
+class(y)
+(test %>% filter(State == "AL") %>% filter(City == "Birmingham") %>% distinct(Zipcode))[[1]]
 ```
 
 
