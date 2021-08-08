@@ -200,6 +200,14 @@ Measurement = "income_estimate"
 tm_shape(df_final %>% filter(str_detect(STUSAB, State))) +
   tm_polygons(Measurement, border.alpha = 0, id="NAME")
 
+(df_final %>% filter(NAME == (zillow_all %>% 
+            filter(City == "New York") %>% 
+            select(CountyName))))
+
+tm_shape(df_final %>% filter(NAME == (zillow_all %>% 
+            filter(City == "New York") %>% 
+            select(CountyName))[[1,1]]))+
+  tm_polygons(Measurement, border.alpha = 0, id="NAME")
 # tm_polygons("income_grp", palette="-Blues", contrast=.7, id="name", title="Income group") 
 
 # + tm_borders(alpha = 0, lwd = 0)

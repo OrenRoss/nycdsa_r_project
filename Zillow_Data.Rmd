@@ -112,6 +112,12 @@ p1 + p2
 ```
 
 ```{r}
+((zillow_all %>% filter(City == "New York") %>% select(CountyName))[[1,1]])
+```
+
+
+
+```{r}
 city_test = "Summerville"
 #Zipcode == 10016
 
