@@ -28,7 +28,7 @@ library(data.table)
 library(purrr)
 library(corrplot)
 library(corrr)
-
+library(RSQLite)
 ```
 
 
@@ -43,14 +43,6 @@ head(df_jobs)
 df_lots <- fread("Data/Low_Transportation_Cost_Index.csv")
 head(df_lots)
 
-
-# df12 <- fread("Data/Location_Affordability_Index_v.3.csv")
-# head(df12)
-# colnames(df12)
-# 
-# df13 <- fread("Data/Location_Affordability_Index_v_2.0.csv")
-# head(df13)
-# colnames(df13)
 ```
 
 ```{r downloading census_repeat of next}
@@ -69,8 +61,26 @@ Pop_ALL <- get_acs(
 
 ```
 
+```{r}
+# TIGER_DP
+
+Pop_ALL_ZIP_15 <- get_acs(
+  geography = "zcta",
+  variables = "B01003_001",
+  state = us,
+  # year = 2015,
+  survey = "acs5",
+  geometry = TRUE, key = census_api_key
+  )
+```
+
+
+
 ```{r downloading geographical}
 # For the codes - https://censusreporter.org/topics/table-codes/
+
+#   geography = "zcta",
+
 us <- unique(fips_codes$state)[1:51]
 Pop_ALL <- get_acs(
   geography = "tract",
@@ -91,8 +101,6 @@ Inc_ALL <- get_acs(
   )
 
 ```
-
-
 
 ```{r merging data}
 
@@ -124,8 +132,7 @@ full_df <- df_lots %>% inner_join(df_pov) %>% inner_join(df_jobs)
 
 ```
 
-
-```{r}
+```{r joining the data}
 # sum(full_df$GEOID %in% Pop_ALL$GEOID)
 colnames(Inc_ALL)[c(4,5)] <- c("income_estimate", "income_moe")
 Inc_ALL <- as.data.frame(Inc_ALL)[ c(1, 2, 4, 5)]
@@ -140,7 +147,6 @@ df_stats <- as.data.frame(df_final)[-c(6)]
 
 colnames(df_final)
 ```
-
 
 ```{r some statistical analysis}
 
@@ -173,7 +179,7 @@ ggplot(df_final, aes(income_estimate, color = STUSAB)) + geom_density()
 
 
 
-```{r}
+```{r mapping the data}
 State = "CA"
 Measurement = "income_estimate"
 

@@ -59,24 +59,41 @@ zil_home$Zipcode <- zil_home$Zipcode %>% str_pad(5, "left", pad = "0")
 ```
 
 
-```{r}
+```{r merging and melting}
+#copying to make it easier
 rent <- copy(zil_rental)
+
+#melting it
 rent <- melt(rent, id.vars = 1:4)
+
+#changing date format
 rent$variable <- ym(rent$variable)
+
+#changing variable name
 rent <- rename(rent, c(value = "value_rental", variable = "Date"))
-p <- ggplot(rent %>% filter(SizeRank == 2), aes(x=Date, y=value_rental)) +
-  geom_line() + 
-  xlab("")
-p
 
-
+# repeat
 home <- copy(zil_home)
 home <- melt(home, id.vars = 1:7)
 home$variable <- ym(home$variable)
 home <- rename(home, c(value = "value_home", variable = "Date"))
 
 
-test <- merge(rent, home, by = c("Zipcode","Date", "RegionID"))
+zillow_all <- merge(rent, home, by = c("Zipcode","Date", "RegionID"))
+
+#writing it to a file for later
+fwrite(zillow_all, file = "zillow_all.csv")
+zillow <- fread("zillow_all.csv")
+```
+
+
+
+```{r testing plotting}
+
+p <- ggplot(rent %>% filter(SizeRank == 2), aes(x=Date, y=value_rental)) +
+  geom_line() + 
+  xlab("")
+p
 
 
 p1 <- ggplot(test %>% filter(City == "Summerville"), aes(x=Date, y=value_rental)) +
@@ -112,19 +129,38 @@ ggplot(test %>% filter(Zipcode == 10016), aes(x=Date, y=value_home)) +
   geom_line( aes(y=value_home), size=2, color= "red") + 
   geom_line( aes(y=value_rental*coef), size=2, color="blue") + # Divide by 10 to get the same range than the temperature
 
-  
 #  Custom the Y scales:
   scale_y_continuous(
-
     # Features of the first axis
     name = "Home Value",
-
     # Add a second axis and specify its features
     sec.axis = sec_axis(trans=~./coef, name="Rental")
   ) +
-
   theme_ipsum()
 ```
 
+
+```{r}
+
+# 
+# Inc_zip <- get_acs(
+#   geography = "zcta",
+#   variables = "B19013_001",
+#   state = us,
+#   # year = 2016,
+#   survey = "acs5",
+# key = census_api_key
+#   )
+
+
+```
+
+```{r}
+unique(zillow_all$City)
+```
+
+```{r}
+(test %>% filter(State == "MA") %>% distinct(City))[[1]]
+```
 
 
