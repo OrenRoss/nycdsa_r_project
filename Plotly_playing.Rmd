@@ -80,3 +80,24 @@ library(reprex)
 reprex(input = test)
 ```
 
+
+```{r}
+df <- fread("df_final.csv")
+fig <- plot_ly(df %>% filter(STUSAB == "AK"), x = ~poverty_index, y = ~labor_index, type = 'scatter')
+fig
+
+colnames(df)
+df[12:18] <- lapply(df[12:18], as.numeric)
+
+transform(df, school_index = as.integer(school_index))
+transform(df, jobs_index = as.integer(jobs_index))
+fit <- lm(poverty_index ~ labor_index, data = df %>% filter(STUSAB == "AK"))
+
+df %>% filter(STUSAB == "AK") %>% 
+  plot_ly(x = ~labor_index) %>% 
+  add_markers(y = ~poverty_index) %>% 
+  add_lines(x = ~labor_index, y = fitted(fit))
+
+
+```
+

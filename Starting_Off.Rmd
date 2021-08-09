@@ -156,11 +156,12 @@ tm_shape(test) +
 #   total_pop = "B01003_001",
 #   median_income = "B19013_001"
 #   )
-# us[1:51]
+# state.abb
+# us <-  us[1:51]
 Pop_ALL <- get_acs(
   geography = "tract",
   variables = "B01003_001",
-  state = us,
+  state = state.abb,
   # year = 2016,
   survey = "acs5",
   geometry = TRUE, key = census_api_key #, options(tigris_use_cache = TRUE)
@@ -169,7 +170,23 @@ Pop_ALL <- get_acs(
 # Pop_ALL <- Pop_AL
 #, options(tigris_use_cache = TRUE)
 ```
+```{r us map by zip testing}
+#us<-map_data('state')
+install.packages("zipcodeR")
+library(zipcodeR)
 
+
+reverse_zipcode('08901')
+
+zillow_all$Zipcode == "08901"
+reverse_zipcode
+
+ggplot(Pop_ALL_ZIP_15,aes(longitude,latitude)) +
+  geom_polygon(data=us,aes(x=long,y=lat,group=group),color='gray',fill=NA,alpha=.35)+
+  geom_point(aes(color = count),size=.15,alpha=.25) +
+  xlim(-125,-65)+ylim(20,50)
+
+```
 
 ```{r}
 cast_all <- function(xg) {

@@ -30,6 +30,8 @@ library(corrplot)
 library(corrr)
 library(RSQLite)
 library(openintro)
+library(plotly)
+library(hablar)
 ```
 
 
@@ -154,9 +156,23 @@ colnames(df_final)
 
 # Changing name to County Names
 df_final$NAME <- sub(".*?, ", "", df_final$NAME)
-
+df_final <- df_final %>% 
+  convert(int(poverty_index:jobs_index))
 df_final <- df_final %>% mutate(State_Name = abbr2state(STUSAB))
 
+df_stats <- df_final[,-c(6)]
+
+
+fwrite(df_stats, "df_final.csv")
+str(df_stats)
+sum(is.na(df_stats$poverty_index))
+
+
+df_lm <- df_stats %>% filter(!is.na(poverty_index)) %>% filter(!is.na(labor_index)) %>% filter(!is.na(transportation_cost_index)) %>% filter(!is.na(transport_index)) %>% filter(!is.na(school_index)) %>% filter(!is.na(jobs_index))
+
+df_lm <- df_lm %>% 
+  convert(int(poverty_index:jobs_index))
+fwrite(df_lm, "df_lm.csv")
 ```
 
 
